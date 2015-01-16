@@ -56,7 +56,7 @@ public class WallstreetcnSaveTest implements Runnable {
 	private static String[] ruleList_centralbank = { "5" };
 	
 	private static final int start = 1;
-	private static final int end = 30;
+	private static final int end = 3000;
 	
 	//对x,x,x格式的内容进行分隔筛选
 	public static String setCategory(String categorySet, String[] ruleList, Map<String, String> map) {
@@ -185,33 +185,38 @@ public class WallstreetcnSaveTest implements Runnable {
 				String html = httpRequest(requestUrl);
 				List<Map<String, String>> resultList = htmlFiter(html, Regex);
 				
-				for (Map<String, String> result : resultList) {
-					BasicDBObject dbObject = new BasicDBObject();
-					
-					String type = result.get(REGEXSTRING1);
-					String content = UnicodeToString(result.get(REGEXSTRING2));
-//					String content = result.get(REGEXSTRING2);
-					
-					Map<String, String> map = GetMap();
-					String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
-					String property = setCategory(result.get(REGEXSTRING3), ruleList_property, map);
-					String centralbank = setCategory(result.get(REGEXSTRING3), ruleList_centralbank, map);
-					
-					Date date = new Date();
-					DateFormat time = DateFormat.getDateTimeInstance();
-					String time_str = time.format(date);
-					
-					String source = "wangstreetcn";
+				if (resultList.isEmpty()) {
+					System.out.printf("The end url: %s", requestUrl);
+					break;
+				} else {
+					for (Map<String, String> result : resultList) {
+						BasicDBObject dbObject = new BasicDBObject();
+						
+						String type = result.get(REGEXSTRING1);
+						String content = UnicodeToString(result.get(REGEXSTRING2));
+//						String content = result.get(REGEXSTRING2);
+						
+						Map<String, String> map = GetMap();
+						String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
+						String property = setCategory(result.get(REGEXSTRING3), ruleList_property, map);
+						String centralbank = setCategory(result.get(REGEXSTRING3), ruleList_centralbank, map);
+						
+						Date date = new Date();
+						DateFormat time = DateFormat.getDateTimeInstance();
+						String time_str = time.format(date);
+						
+						String source = "wangstreetcn";
 
-					dbObject.put("content", content);       // 具体内容
-					dbObject.put("createdtime", time_str);   // 创建时间
-					dbObject.put("source", source);          // 信息来源
-					dbObject.put("district", district);      // 所属地区
-					dbObject.put("property", property);      // 资产类别
-					dbObject.put("centralbank", centralbank); // 资产类别
-					dbObject.put("type", type); //信息类型
-					
-					collection.insert(dbObject);
+						dbObject.put("content", content);       // 具体内容
+						dbObject.put("createdtime", time_str);   // 创建时间
+						dbObject.put("source", source);          // 信息来源
+						dbObject.put("district", district);      // 所属地区
+						dbObject.put("property", property);      // 资产类别
+						dbObject.put("centralbank", centralbank); // 资产类别
+						dbObject.put("type", type); //信息类型
+						
+						collection.insert(dbObject);
+					}
 				}
 			}
 		} catch (Exception e) {
