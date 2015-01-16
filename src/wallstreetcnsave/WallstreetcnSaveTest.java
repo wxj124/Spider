@@ -20,17 +20,53 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
 
-public class WallstreetcnSaveTest implements Runnable {
+
+public class WallstreetcnSaveTest {
+	public static void main(String[] args) {		
+		
+		Date date = new Date();
+		DateFormat time = DateFormat.getDateTimeInstance();
+		String time_str = time.format(date);
+		System.out.println(time_str);
+		
+		Reservoir r = new Reservoir(1000);
+		Thread thread1 = new Thread(new WallstreetcnSave(r));
+		thread1.start();
+		Thread thread2 = new Thread(new WallstreetcnSave(r));
+		thread2.start();
+		Thread thread3 = new Thread(new WallstreetcnSave(r));
+		thread3.start();
+		Thread thread4 = new Thread(new WallstreetcnSave(r));
+		thread4.start();
+//		Thread thread5 = new Thread(new WallstreetcnSave(r));
+//		thread5.start();
+//		Thread thread6 = new Thread(new WallstreetcnSave(r));
+//		thread6.start();
+//		Thread thread7 = new Thread(new WallstreetcnSave(r));
+//		thread7.start();
+//		Thread thread8 = new Thread(new WallstreetcnSave(r));
+//		thread8.start();
+	}
+}
+
+
+class WallstreetcnSave implements Runnable {
 	
 	private static String DataBaseName = "textclassify";
 	private static String CollectionName = "WallstreetSaveJava";
-
-	private static String url = "http://api.wallstreetcn.com/v2/livenews?&page=";
 	
 	private static String Regex = ".*?\"type\":\"(.*?)\".*?\"contentHtml\":\"<p>(.*?)<\\\\/p>\".*?\"categorySet\":\"(.*?)\".*?";
 	private static final String REGEXSTRING1 = "type";
 	private static final String REGEXSTRING2 = "content";
 	private static final String REGEXSTRING3 = "categoryset";
+	
+	private Reservoir release;
+	/**
+	 * constructor
+	 */
+	public WallstreetcnSave(Reservoir r) {
+		this.release = r; // all threads share the same reservoir
+	}
 	
 	//map表的存放
 	public static Map<String, String> GetMap() {
@@ -54,8 +90,6 @@ public class WallstreetcnSaveTest implements Runnable {
 	private static String[] ruleList_district = { "9", "10", "11", "12", "13", "14", "15", "16", "17" };
 	private static String[] ruleList_property = { "1", "2", "3", "4" };
 	private static String[] ruleList_centralbank = { "5" };
-	
-	private static final int NUM = 3000;
 	
 	//对x,x,x格式的内容进行分隔筛选
 	public static String setCategory(String categorySet, String[] ruleList, Map<String, String> map) {
@@ -170,58 +204,84 @@ public class WallstreetcnSaveTest implements Runnable {
 		}
 	
 	public void run() {
-		// 链接数据库
-		try {
-			Mongo mongo = new Mongo("localhost", 27017);
-			DB db = mongo.getDB(DataBaseName);
-			DBCollection collection = db.getCollection(CollectionName);
-			
-			// 调用抓取的方法获取内容
-			for (int i = 1; i < NUM; i++) {
-				String requestUrl = url + i;
-				System.out.println(requestUrl);
+		while(true) {
+			// 链接数据库
+			try {
+				Mongo mongo = new Mongo("localhost", 27017);
+				DB db = mongo.getDB(DataBaseName);
+				DBCollection collection = db.getCollection(CollectionName);
 				
-				String html = httpRequest(requestUrl);
-				List<Map<String, String>> resultList = htmlFiter(html, Regex);
-				
-				for (Map<String, String> result : resultList) {
-					BasicDBObject dbObject = new BasicDBObject();
+				// 调用抓取的方法获取内容
+				String requestUrl = this.release.sellTicket();
+				if(requestUrl.equals("")) {
+					System.out.println("Error");
+					break;
+				} else {
+					System.out.println(requestUrl);
 					
-					String type = result.get(REGEXSTRING1);
-					String content = UnicodeToString(result.get(REGEXSTRING2));
-//					String content = result.get(REGEXSTRING2);
+					String html = httpRequest(requestUrl);
+					List<Map<String, String>> resultList = htmlFiter(html, Regex);
 					
-					Map<String, String> map = GetMap();
-					String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
-					String property = setCategory(result.get(REGEXSTRING3), ruleList_property, map);
-					String centralbank = setCategory(result.get(REGEXSTRING3), ruleList_centralbank, map);
-					
-					Date date = new Date();
-					DateFormat time = DateFormat.getDateTimeInstance();
-					String time_str = time.format(date);
-					
-					String source = "wangstreetcn";
-
-					dbObject.put("content", content);       // 具体内容
-					dbObject.put("createdtime", time_str);   // 创建时间
-					dbObject.put("source", source);          // 信息来源
-					dbObject.put("district", district);      // 所属地区
-					dbObject.put("property", property);      // 资产类别
-					dbObject.put("centralbank", centralbank); // 资产类别
-					dbObject.put("type", type); //信息类型
-					
-					collection.insert(dbObject);
+					for (Map<String, String> result : resultList) {
+						BasicDBObject dbObject = new BasicDBObject();
+						
+						String type = result.get(REGEXSTRING1);
+						String content = UnicodeToString(result.get(REGEXSTRING2));
+	//						String content = result.get(REGEXSTRING2);
+						
+						Map<String, String> map = GetMap();
+						String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
+						String property = setCategory(result.get(REGEXSTRING3), ruleList_property, map);
+						String centralbank = setCategory(result.get(REGEXSTRING3), ruleList_centralbank, map);
+						
+						Date date = new Date();
+						DateFormat time = DateFormat.getDateTimeInstance();
+						String time_str = time.format(date);
+						
+						String source = "wangstreetcn";
+	
+						dbObject.put("content", content);       // 具体内容
+						dbObject.put("createdtime", time_str);   // 创建时间
+						dbObject.put("source", source);          // 信息来源
+						dbObject.put("district", district);      // 所属地区
+						dbObject.put("property", property);      // 资产类别
+						dbObject.put("centralbank", centralbank); // 资产类别
+						dbObject.put("type", type); //信息类型
+						
+						collection.insert(dbObject);
+					}
 				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} 
-	}
-	
-	
-	public static void main(String[] args) throws InterruptedException {
-		WallstreetcnSaveTest wallstreetcnsave = new WallstreetcnSaveTest();
-		wallstreetcnsave.run();
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+		}
 	}
 
+}
+	
+/**
+ * contain shared resource
+ */
+class Reservoir {
+	private String url = "http://api.wallstreetcn.com/v2/livenews?&page=";
+	private int total;
+	public Reservoir(int t) 
+	{
+		this.total = t;
+	}
+	/**
+	 * Thread safe method
+	 * serialized access to Booth.total
+	 */
+	public synchronized String sellTicket() // 利用synchronized修饰符同步了整个方法
+	{
+		if(this.total > 0) {
+			this.total = this.total-1;
+			String requestUrl = this.url+this.total;
+			return requestUrl;
+		}
+		else {
+			return ""; 
+		}
+	}
 }
