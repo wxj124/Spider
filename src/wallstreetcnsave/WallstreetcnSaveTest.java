@@ -21,36 +21,12 @@ import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
 
 
-public class WallstreetcnSaveTest {
-	public static void main(String[] args) {		
-		
-		Date date = new Date();
-		DateFormat time = DateFormat.getDateTimeInstance();
-		String time_str = time.format(date);
-		System.out.println(time_str);
-		
-		Reservoir r = new Reservoir(1000);
-		Thread thread1 = new Thread(new WallstreetcnSave(r));
-		thread1.start();
-		Thread thread2 = new Thread(new WallstreetcnSave(r));
-		thread2.start();
-		Thread thread3 = new Thread(new WallstreetcnSave(r));
-		thread3.start();
-		Thread thread4 = new Thread(new WallstreetcnSave(r));
-		thread4.start();
-//		Thread thread5 = new Thread(new WallstreetcnSave(r));
-//		thread5.start();
-//		Thread thread6 = new Thread(new WallstreetcnSave(r));
-//		thread6.start();
-//		Thread thread7 = new Thread(new WallstreetcnSave(r));
-//		thread7.start();
-//		Thread thread8 = new Thread(new WallstreetcnSave(r));
-//		thread8.start();
-	}
-}
-
-
 class WallstreetcnSave implements Runnable {
+	
+	private GetrequestUrl release;
+	public WallstreetcnSave(GetrequestUrl url) {
+		this.release = url; // all threads share the same GetrequestUrl
+	}
 	
 	private static String DataBaseName = "textclassify";
 	private static String CollectionName = "WallstreetSaveJava";
@@ -59,14 +35,6 @@ class WallstreetcnSave implements Runnable {
 	private static final String REGEXSTRING1 = "type";
 	private static final String REGEXSTRING2 = "content";
 	private static final String REGEXSTRING3 = "categoryset";
-	
-	private Reservoir release;
-	/**
-	 * constructor
-	 */
-	public WallstreetcnSave(Reservoir r) {
-		this.release = r; // all threads share the same reservoir
-	}
 	
 	//map表的存放
 	public static Map<String, String> GetMap() {
@@ -204,7 +172,7 @@ class WallstreetcnSave implements Runnable {
 		}
 	
 	public void run() {
-		while(true) {
+		while(true) { // 循环体！！！
 			// 链接数据库
 			try {
 				Mongo mongo = new Mongo("localhost", 27017);
@@ -212,9 +180,8 @@ class WallstreetcnSave implements Runnable {
 				DBCollection collection = db.getCollection(CollectionName);
 				
 				// 调用抓取的方法获取内容
-				String requestUrl = this.release.sellTicket();
+				String requestUrl = this.release.GetMethod();
 				if(requestUrl.equals("")) {
-					System.out.println("Error");
 					break;
 				} else {
 					System.out.println(requestUrl);
@@ -227,7 +194,6 @@ class WallstreetcnSave implements Runnable {
 						
 						String type = result.get(REGEXSTRING1);
 						String content = UnicodeToString(result.get(REGEXSTRING2));
-	//						String content = result.get(REGEXSTRING2);
 						
 						Map<String, String> map = GetMap();
 						String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
@@ -262,26 +228,56 @@ class WallstreetcnSave implements Runnable {
 /**
  * contain shared resource
  */
-class Reservoir {
+class GetrequestUrl {
+	
 	private String url = "http://api.wallstreetcn.com/v2/livenews?&page=";
-	private int total;
-	public Reservoir(int t) 
+	private int start;
+	private int end;
+	
+	public GetrequestUrl(int start, int end) 
 	{
-		this.total = t;
+		this.start = start;
+		this.end = end;
 	}
+	
 	/**
 	 * Thread safe method
-	 * serialized access to Booth.total
 	 */
-	public synchronized String sellTicket() // 利用synchronized修饰符同步了整个方法
+	public synchronized String GetMethod() // 利用synchronized修饰符同步了整个方法
 	{
-		if(this.total > 0) {
-			this.total = this.total-1;
-			String requestUrl = this.url+this.total;
+		if(this.start <= this.end) {
+			String requestUrl = this.url+this.start;
+			this.start = this.start+1;
 			return requestUrl;
 		}
 		else {
 			return ""; 
 		}
+	}
+}
+
+
+public class WallstreetcnSaveTest {
+	public static void main(String[] args) {		
+		
+		int start = 1, end = 3000;
+		GetrequestUrl url = new GetrequestUrl(start, end);
+		
+		Thread thread1 = new Thread(new WallstreetcnSave(url));
+		thread1.start();
+		Thread thread2 = new Thread(new WallstreetcnSave(url));
+		thread2.start();
+		Thread thread3 = new Thread(new WallstreetcnSave(url));
+		thread3.start();
+		Thread thread4 = new Thread(new WallstreetcnSave(url));
+		thread4.start();
+		Thread thread5 = new Thread(new WallstreetcnSave(url));
+		thread5.start();
+		Thread thread6 = new Thread(new WallstreetcnSave(url));
+		thread6.start();
+		Thread thread7 = new Thread(new WallstreetcnSave(url));
+		thread7.start();
+		Thread thread8 = new Thread(new WallstreetcnSave(url));
+		thread8.start();
 	}
 }
