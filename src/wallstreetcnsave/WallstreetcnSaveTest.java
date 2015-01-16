@@ -262,7 +262,6 @@ public class WallstreetcnSaveTest {
 		
 		int start = 1, end = 3000;
 		GetrequestUrl url = new GetrequestUrl(start, end);
-		
 		Thread thread1 = new Thread(new WallstreetcnSave(url));
 		thread1.start();
 		Thread thread2 = new Thread(new WallstreetcnSave(url));
