@@ -220,17 +220,8 @@ public class WallstreetcnSaveTest implements Runnable {
 	
 	
 	public static void main(String[] args) throws InterruptedException {
-//		// 单线程
-//		WallstreetcnSaveTest wallstreetcnsave = new WallstreetcnSaveTest();
-//		wallstreetcnsave.run();
-		
-		// 多线程
-		Runnable runner1 = new WallstreetcnSaveTest();
-		Thread thread1 = new Thread(runner1);
-		Runnable runner2 = new WallstreetcnSaveTest();
-		Thread thread2 = new Thread(runner2);
-		thread1.start();
-		thread2.start();
+		WallstreetcnSaveTest wallstreetcnsave = new WallstreetcnSaveTest();
+		wallstreetcnsave.run();
 	}
 
 }

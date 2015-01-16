@@ -67,7 +67,7 @@ class Booth extends Thread {
 	 * what does the thread do?
 	 */
 	public void run() {
-		while(true) {
+		while(true) { // 循环体！！！
 			if(this.release.sellTicket()) {
 				this.count = this.count+1;
 				System.out.println(this.getName()+":sell 1");
