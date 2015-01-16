@@ -55,7 +55,8 @@ public class WallstreetcnSaveTest implements Runnable {
 	private static String[] ruleList_property = { "1", "2", "3", "4" };
 	private static String[] ruleList_centralbank = { "5" };
 	
-	private static final int NUM = 3000;
+	private static final int start = 1;
+	private static final int end = 30;
 	
 	//对x,x,x格式的内容进行分隔筛选
 	public static String setCategory(String categorySet, String[] ruleList, Map<String, String> map) {
@@ -177,7 +178,7 @@ public class WallstreetcnSaveTest implements Runnable {
 			DBCollection collection = db.getCollection(CollectionName);
 			
 			// 调用抓取的方法获取内容
-			for (int i = 1; i < NUM; i++) {
+			for (int i = start; i <= end; i++) {
 				String requestUrl = url + i;
 				System.out.println(requestUrl);
 				
