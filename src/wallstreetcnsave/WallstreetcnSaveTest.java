@@ -189,32 +189,37 @@ class WallstreetcnSave implements Runnable {
 					String html = httpRequest(requestUrl);
 					List<Map<String, String>> resultList = htmlFiter(html, Regex);
 					
-					for (Map<String, String> result : resultList) {
-						BasicDBObject dbObject = new BasicDBObject();
-						
-						String type = result.get(REGEXSTRING1);
-						String content = UnicodeToString(result.get(REGEXSTRING2));
-						
-						Map<String, String> map = GetMap();
-						String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
-						String property = setCategory(result.get(REGEXSTRING3), ruleList_property, map);
-						String centralbank = setCategory(result.get(REGEXSTRING3), ruleList_centralbank, map);
-						
-						Date date = new Date();
-						DateFormat time = DateFormat.getDateTimeInstance();
-						String time_str = time.format(date);
-						
-						String source = "wangstreetcn";
-	
-						dbObject.put("content", content);       // 具体内容
-						dbObject.put("createdtime", time_str);   // 创建时间
-						dbObject.put("source", source);          // 信息来源
-						dbObject.put("district", district);      // 所属地区
-						dbObject.put("property", property);      // 资产类别
-						dbObject.put("centralbank", centralbank); // 资产类别
-						dbObject.put("type", type); //信息类型
-						
-						collection.insert(dbObject);
+					if (resultList.isEmpty()) {
+						System.out.printf("The end url: %s", requestUrl);
+						break;
+					} else {
+						for (Map<String, String> result : resultList) {
+							BasicDBObject dbObject = new BasicDBObject();
+							
+							String type = result.get(REGEXSTRING1);
+							String content = UnicodeToString(result.get(REGEXSTRING2));
+							
+							Map<String, String> map = GetMap();
+							String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
+							String property = setCategory(result.get(REGEXSTRING3), ruleList_property, map);
+							String centralbank = setCategory(result.get(REGEXSTRING3), ruleList_centralbank, map);
+							
+							Date date = new Date();
+							DateFormat time = DateFormat.getDateTimeInstance();
+							String time_str = time.format(date);
+							
+							String source = "wangstreetcn";
+		
+							dbObject.put("content", content);       // 具体内容
+							dbObject.put("createdtime", time_str);   // 创建时间
+							dbObject.put("source", source);          // 信息来源
+							dbObject.put("district", district);      // 所属地区
+							dbObject.put("property", property);      // 资产类别
+							dbObject.put("centralbank", centralbank); // 资产类别
+							dbObject.put("type", type); //信息类型
+							
+							collection.insert(dbObject);
+						}
 					}
 				}
 			} catch (Exception e) {
@@ -223,6 +228,63 @@ class WallstreetcnSave implements Runnable {
 		}
 	}
 
+	public void run1() {
+		while(true) { // 循环体！！！
+			// 链接数据库
+			try {
+				Mongo mongo = new Mongo("localhost", 27017);
+				DB db = mongo.getDB(DataBaseName);
+				DBCollection collection = db.getCollection(CollectionName);
+				
+				// 调用抓取的方法获取内容
+				String requestUrl = this.release.GetMethod();
+				if(requestUrl.equals("")) {
+					break;
+				} else {
+					System.out.println(requestUrl);
+					
+					String html = httpRequest(requestUrl);
+					List<Map<String, String>> resultList = htmlFiter(html, Regex);
+					
+					if (resultList.isEmpty()) {
+						System.out.printf("The end url: %s\n", requestUrl);
+						break;
+					} else {
+						for (Map<String, String> result : resultList) {
+							BasicDBObject dbObject = new BasicDBObject();
+							
+							String type = result.get(REGEXSTRING1);
+							String content = UnicodeToString(result.get(REGEXSTRING2));
+							
+							Map<String, String> map = GetMap();
+							String district = setCategory(result.get(REGEXSTRING3), ruleList_district, map); 
+							String property = setCategory(result.get(REGEXSTRING3), ruleList_property, map);
+							String centralbank = setCategory(result.get(REGEXSTRING3), ruleList_centralbank, map);
+							
+							Date date = new Date();
+							DateFormat time = DateFormat.getDateTimeInstance();
+							String time_str = time.format(date);
+							
+							String source = "wangstreetcn";
+		
+							dbObject.put("content", content);       // 具体内容
+							dbObject.put("createdtime", time_str);   // 创建时间
+							dbObject.put("source", source);          // 信息来源
+							dbObject.put("district", district);      // 所属地区
+							dbObject.put("property", property);      // 资产类别
+							dbObject.put("centralbank", centralbank); // 资产类别
+							dbObject.put("type", type); //信息类型
+							
+							collection.insert(dbObject);
+						}
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+		}
+	}
+	
 }
 	
 /**
@@ -232,14 +294,18 @@ class GetrequestUrl {
 	
 	private String url = "http://api.wallstreetcn.com/v2/livenews?&page=";
 	private int start;
-	private int end;
+	private int end = 5000;
 	
+	public GetrequestUrl(int start) 
+	{
+		this.start = start;
+	}
 	public GetrequestUrl(int start, int end) 
 	{
 		this.start = start;
 		this.end = end;
 	}
-	
+
 	/**
 	 * Thread safe method
 	 */
@@ -259,9 +325,12 @@ class GetrequestUrl {
 
 public class WallstreetcnSaveTest {
 	public static void main(String[] args) {		
-		
+		// 多线程抓取
+//		int start = 1;
+//		GetrequestUrl url = new GetrequestUrl(start);
 		int start = 1, end = 3000;
 		GetrequestUrl url = new GetrequestUrl(start, end);
+		
 		Thread thread1 = new Thread(new WallstreetcnSave(url));
 		thread1.start();
 		Thread thread2 = new Thread(new WallstreetcnSave(url));
